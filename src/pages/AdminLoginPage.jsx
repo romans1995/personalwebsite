@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { LockKeyhole, ShieldCheck } from 'lucide-react'
+import { trackAdminLoginView } from '../lib/analytics'
 import { useAuth } from '../context/AuthContext'
 
 function AdminLoginPage() {
@@ -11,6 +12,12 @@ function AdminLoginPage() {
   const [submitting, setSubmitting] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
+
+  useEffect(() => {
+    trackAdminLoginView({
+      path: '/studio/login',
+    })
+  }, [])
 
   if (!firebaseEnabled) {
     return (

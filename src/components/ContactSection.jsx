@@ -1,5 +1,6 @@
 import { motion } from "framer-motion"
 import { Mail, Phone, MapPin, ExternalLink } from "lucide-react"
+import { isLinkedInPostUrl, trackContactClick, trackLinkedinPostClick, trackSocialClick } from "../lib/analytics"
 import { isSafeExternalUrl, normalizeUrl } from "../lib/security"
 
 const LinkedInIcon = () => (
@@ -31,6 +32,9 @@ function ContactSection({ contact }) {
     })),
   ]
 
+  const primaryCtaHref = normalizeUrl(contact.ctaPrimaryUrl, { allowHash: true, allowRelative: true, allowMailto: true, allowTel: true, fallback: '#' })
+  const secondaryCtaHref = normalizeUrl(contact.ctaSecondaryUrl, { allowHash: true, allowRelative: true, allowMailto: true, allowTel: true, fallback: '#' })
+
   return (
     <section id="contact" className="relative overflow-hidden px-4 py-24 sm:px-6 lg:px-8">
       {/* Grand blobs */}
@@ -49,11 +53,41 @@ function ContactSection({ contact }) {
             {contact.description} Based in {contact.location}, open to remote.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <a href={normalizeUrl(contact.ctaPrimaryUrl, { allowHash: true, allowRelative: true, allowMailto: true, allowTel: true, fallback: '#' })}
+            <a href={primaryCtaHref}
+              onClick={() => {
+                trackContactClick({
+                  action: 'primary_cta',
+                  label: contact.ctaPrimaryLabel,
+                  destination: primaryCtaHref,
+                })
+
+                if (isLinkedInPostUrl(primaryCtaHref)) {
+                  trackLinkedinPostClick({
+                    source: 'contact_cta_primary',
+                    label: contact.ctaPrimaryLabel,
+                    destination: primaryCtaHref,
+                  })
+                }
+              }}
               className="inline-flex items-center gap-2.5 rounded-full bg-gradient-to-r from-sky-500 to-violet-600 px-7 py-3 text-sm font-bold text-white shadow-2xl shadow-sky-500/20 transition-all hover:shadow-sky-500/40 hover:brightness-110">
               <Mail size={16} /> {contact.ctaPrimaryLabel}
             </a>
-            <a href={normalizeUrl(contact.ctaSecondaryUrl, { allowHash: true, allowRelative: true, allowMailto: true, allowTel: true, fallback: '#' })} target={isSafeExternalUrl(contact.ctaSecondaryUrl) ? "_blank" : undefined} rel={isSafeExternalUrl(contact.ctaSecondaryUrl) ? "noopener noreferrer" : undefined}
+            <a href={secondaryCtaHref} target={isSafeExternalUrl(secondaryCtaHref) ? "_blank" : undefined} rel={isSafeExternalUrl(secondaryCtaHref) ? "noopener noreferrer" : undefined}
+              onClick={() => {
+                trackContactClick({
+                  action: 'secondary_cta',
+                  label: contact.ctaSecondaryLabel,
+                  destination: secondaryCtaHref,
+                })
+
+                if (isLinkedInPostUrl(secondaryCtaHref)) {
+                  trackLinkedinPostClick({
+                    source: 'contact_cta_secondary',
+                    label: contact.ctaSecondaryLabel,
+                    destination: secondaryCtaHref,
+                  })
+                }
+              }}
               className="inline-flex items-center gap-2.5 rounded-full border border-white/15 bg-white/5 px-7 py-3 text-sm font-bold text-white transition-all hover:border-white/25 hover:bg-white/10">
               <LinkedInIcon /> {contact.ctaSecondaryLabel}
             </a>
@@ -66,6 +100,32 @@ function ContactSection({ contact }) {
             <motion.a key={c.label} href={normalizeUrl(c.href, { allowHash: true, allowRelative: true, allowMailto: true, allowTel: true, fallback: '#' })}
               target={isSafeExternalUrl(c.href) ? "_blank" : undefined}
               rel={isSafeExternalUrl(c.href) ? "noopener noreferrer" : undefined}
+              onClick={() => {
+                const destination = normalizeUrl(c.href, { allowHash: true, allowRelative: true, allowMailto: true, allowTel: true, fallback: '#' })
+
+                if (c.label === 'Email' || c.label === 'Phone') {
+                  trackContactClick({
+                    action: 'contact_card',
+                    label: c.label,
+                    destination,
+                  })
+                  return
+                }
+
+                trackSocialClick({
+                  label: c.label,
+                  destination,
+                  placement: 'contact_cards',
+                })
+
+                if (isLinkedInPostUrl(destination)) {
+                  trackLinkedinPostClick({
+                    source: 'social_card',
+                    label: c.label,
+                    destination,
+                  })
+                }
+              }}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}

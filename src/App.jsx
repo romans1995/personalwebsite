@@ -1,5 +1,6 @@
 import { Suspense, lazy } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
+import AnalyticsPageTracker from './components/AnalyticsPageTracker'
 import ProtectedRoute from './components/ProtectedRoute'
 
 const PublicSitePage = lazy(() => import('./pages/PublicSitePage'))
@@ -15,6 +16,7 @@ function App() {
         </div>
       }
     >
+      <AnalyticsPageTracker />
       <Routes>
         <Route path="/" element={<PublicSitePage />} />
         <Route path="/studio/login" element={<AdminLoginPage />} />

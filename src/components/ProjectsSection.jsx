@@ -1,5 +1,6 @@
 import { motion } from "framer-motion"
 import { ArrowUpRight } from "lucide-react"
+import { isLinkedInPostUrl, trackLinkedinPostClick, trackProjectClick } from "../lib/analytics"
 import { isSafeExternalUrl, normalizeImageUrl, normalizeUrl } from "../lib/security"
 
 function ProjectsSection({ projects = [] }) {
@@ -74,6 +75,23 @@ function ProjectsSection({ projects = [] }) {
                 <div className="relative z-20 mt-5 flex gap-3 pointer-events-auto">
                   {hasValidPrimaryLink ? (
                     <a href={primaryHref} target={isSafeExternalUrl(primaryHref) ? "_blank" : undefined} rel={isSafeExternalUrl(primaryHref) ? "noopener noreferrer" : undefined}
+                      onClick={() => {
+                        trackProjectClick({
+                          project_title: proj.title,
+                          link_type: 'primary',
+                          link_label: proj.primaryLinkLabel,
+                          destination: primaryHref,
+                        })
+
+                        if (isLinkedInPostUrl(primaryHref)) {
+                          trackLinkedinPostClick({
+                            source: 'project_link',
+                            project_title: proj.title,
+                            link_type: 'primary',
+                            destination: primaryHref,
+                          })
+                        }
+                      }}
                       className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3.5 py-1.5 text-xs font-medium text-slate-400 transition hover:border-white/20 hover:text-white">
                       {proj.primaryLinkLabel} <ArrowUpRight size={12} />
                     </a>
@@ -86,6 +104,23 @@ function ProjectsSection({ projects = [] }) {
 
                   {hasValidSecondaryLink ? (
                     <a href={secondaryHref} target={isSafeExternalUrl(secondaryHref) ? "_blank" : undefined} rel={isSafeExternalUrl(secondaryHref) ? "noopener noreferrer" : undefined}
+                      onClick={() => {
+                        trackProjectClick({
+                          project_title: proj.title,
+                          link_type: 'secondary',
+                          link_label: proj.secondaryLinkLabel,
+                          destination: secondaryHref,
+                        })
+
+                        if (isLinkedInPostUrl(secondaryHref)) {
+                          trackLinkedinPostClick({
+                            source: 'project_link',
+                            project_title: proj.title,
+                            link_type: 'secondary',
+                            destination: secondaryHref,
+                          })
+                        }
+                      }}
                       className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-sky-500/30 bg-sky-500/10 px-3.5 py-1.5 text-xs font-medium text-sky-400 transition hover:bg-sky-500/20">
                       {proj.secondaryLinkLabel} <ArrowUpRight size={12} />
                     </a>

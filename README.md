@@ -59,6 +59,8 @@ VITE_FIREBASE_APP_ID=
 VITE_CLOUDINARY_CLOUD_NAME=
 VITE_CLOUDINARY_UPLOAD_PRESET=
 VITE_CLOUDINARY_BASE_FOLDER=
+VITE_GA_MEASUREMENT_ID=
+VITE_CLARITY_PROJECT_ID=
 ```
 
 ## Firebase setup
@@ -80,7 +82,7 @@ Create Firestore in production mode.
 In Cloudinary:
 
 1. Create or use your Cloudinary account
-2. Create an unsigned upload preset (Settings → Upload → Upload presets)
+2. Create an unsigned upload preset (Settings â†’ Upload â†’ Upload presets)
 3. Set the preset name in `VITE_CLOUDINARY_UPLOAD_PRESET`
 4. Add your cloud name to `VITE_CLOUDINARY_CLOUD_NAME`
 
@@ -101,14 +103,14 @@ firebase deploy --only firestore:rules
 
 Because the dashboard is owner-only, admin access is controlled by an `admins` collection.
 
-### Step A — create your auth user
+### Step A â€” create your auth user
 
 In Firebase Console:
 
 1. Open Authentication
 2. Add a user manually with your email/password
 
-### Step B — create your admin authorization doc
+### Step B â€” create your admin authorization doc
 
 In Firestore, create this document manually:
 
@@ -131,7 +133,7 @@ Only users with an `admins/{uid}` document can access:
 
 Image uploads are sent to Cloudinary and only the returned secure URL is stored in Firestore.
 
-### Step C — initialize content
+### Step C â€” initialize content
 
 After signing in to `/studio/login`, open `/studio` and click:
 
@@ -200,16 +202,108 @@ Important:
 3. deploy Firestore rules
 4. ensure your Firebase web app domain is authorized in Firebase Authentication
 
+## Google Analytics 4 (GA4)
+
+GA4 is integrated with route-aware page tracking and custom event tracking.
+This app sends SPA `page_view` events manually through React Router, so GA4 automatic browser-history pageviews should be disabled to avoid double-counting route changes.
+
+### 1. Get your Measurement ID
+
+In Google Analytics:
+
+1. Open **Admin**
+2. Under **Data collection and modification**, choose **Data streams**
+3. Open your web stream
+4. Copy the **Measurement ID** (format: `G-XXXXXXXXXX`)
+
+### 2. Set environment variable
+
+Add this to `.env` (and in your hosting platform env vars):
+
+```bash
+VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+```
+
+GA4 only initializes when this variable is present.
+
+### 3. Disable duplicate SPA pageviews
+
+In your GA4 web data stream:
+
+1. Open **Admin**
+2. Open **Data streams**
+3. Select your web stream
+4. Open **Enhanced measurement**
+5. Open the page-view advanced settings
+6. Turn off browser history based page changes
+
+This prevents GA4 Enhanced Measurement from sending its own SPA route-change `page_view` events on top of the manual React Router tracking in this app.
+
+### 4. Verify page views and events
+
+1. Run your site and navigate between routes (/, /studio/login, /studio)
+2. In GA4, open **Reports -> Realtime**
+3. Confirm you see:
+   - page_view events as routes change
+   - custom events listed below after link/button clicks
+
+For local debugging, you can also inspect browser devtools console/network for gtag requests.
+### Tracked custom events
+
+- `hero_cta_click`
+- `project_click`
+- `contact_click`
+- `social_click`
+- `linkedin_post_click`
+- `admin_login_view`
+
+Implementation files:
+
+- `src/lib/analytics.js` (centralized analytics utility)
+- `src/components/AnalyticsPageTracker.jsx` (React Router page view tracker)
+
+## Microsoft Clarity
+
+Clarity is loaded through the same centralized analytics layer as GA4.
+It loads only when `VITE_CLARITY_PROJECT_ID` is present, and this implementation is scoped to production builds so local development does not start session recording.
+
+### 1. Get your Clarity project ID
+
+In Microsoft Clarity:
+
+1. Sign in at `clarity.microsoft.com`
+2. Open your project
+3. Go to **Settings -> Setup**
+4. Copy the project ID from the install snippet or tracking code
+
+### 2. Set environment variable
+
+Add this to `.env` and to your production hosting environment:
+
+```bash
+VITE_CLARITY_PROJECT_ID=your_clarity_project_id
+```
+
+Clarity only loads when this value exists.
+
+### 3. Verify Clarity is working
+
+1. Deploy or run a production build with `VITE_CLARITY_PROJECT_ID` set
+2. Open the site in a browser and navigate through a few pages
+3. In Clarity, check the project dashboard for an active recording or session within the next few minutes
+
+If you need to verify in the browser, confirm the page loads a request to `https://www.clarity.ms/tag/...`.
+
 ## File overview
 
-- `src/pages/PublicSitePage.jsx` — public website composition
-- `src/pages/AdminLoginPage.jsx` — private login page
-- `src/pages/AdminDashboardPage.jsx` — editable admin dashboard
-- `src/context/AuthContext.jsx` — auth state and admin check
-- `src/services/siteContentService.js` — Firestore content read/write
-- `src/services/storageService.js` — Cloudinary image uploads
-- `src/data/defaultSiteContent.js` — default content model seeded from the existing site
-- `firestore.rules` — Firestore security rules
+- `src/pages/PublicSitePage.jsx` â€” public website composition
+- `src/pages/AdminLoginPage.jsx` â€” private login page
+- `src/pages/AdminDashboardPage.jsx` â€” editable admin dashboard
+- `src/context/AuthContext.jsx` â€” auth state and admin check
+- `src/services/siteContentService.js` â€” Firestore content read/write
+- `src/services/storageService.js` â€” Cloudinary image uploads
+- `src/data/defaultSiteContent.js` â€” default content model seeded from the existing site
+- `firestore.rules` â€” Firestore security rules
 
 ## Notes
 

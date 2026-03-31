@@ -1,5 +1,6 @@
 import { motion } from "framer-motion"
 import { Mail, MapPin, ArrowRight, ExternalLink } from "lucide-react"
+import { isLinkedInPostUrl, trackHeroCtaClick, trackLinkedinPostClick } from "../lib/analytics"
 import { isSafeExternalUrl, normalizeImageUrl, normalizeUrl } from "../lib/security"
 
 const LinkedInIcon = () => (
@@ -127,6 +128,7 @@ function HeroSection({ hero, metrics = [] }) {
           {/* CTA Buttons */}
           <motion.div {...fadeUp(0.55)} className="mt-8 flex flex-wrap gap-3">
             {(hero?.ctas || []).map((cta) => {
+              const href = normalizeUrl(cta.url, { allowHash: true, allowRelative: true, allowMailto: true, allowTel: true, fallback: '#' })
               const styleMap = {
                 primary: 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-lg shadow-sky-500/25 hover:shadow-sky-500/50 hover:brightness-110',
                 secondary: 'border border-white/15 bg-white/5 text-white backdrop-blur-sm hover:border-white/30 hover:bg-white/10',
@@ -134,7 +136,23 @@ function HeroSection({ hero, metrics = [] }) {
               }
 
               return (
-                <a key={`${cta.label}-${cta.url}`} href={normalizeUrl(cta.url, { allowHash: true, allowRelative: true, allowMailto: true, allowTel: true, fallback: '#' })} target={isSafeExternalUrl(cta.url) ? '_blank' : undefined} rel={isSafeExternalUrl(cta.url) ? 'noopener noreferrer' : undefined}
+                <a key={`${cta.label}-${cta.url}`} href={href} target={isSafeExternalUrl(href) ? '_blank' : undefined} rel={isSafeExternalUrl(href) ? 'noopener noreferrer' : undefined}
+                  onClick={() => {
+                    trackHeroCtaClick({
+                      cta_label: cta.label,
+                      cta_style: cta.style || 'secondary',
+                      destination: href,
+                      section: 'hero',
+                    })
+
+                    if (isLinkedInPostUrl(href)) {
+                      trackLinkedinPostClick({
+                        source: 'hero_cta',
+                        label: cta.label,
+                        destination: href,
+                      })
+                    }
+                  }}
                   className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-all ${styleMap[cta.style] || styleMap.secondary}`}>
                   {renderIcon(cta.icon)} {cta.label}
                 </a>
