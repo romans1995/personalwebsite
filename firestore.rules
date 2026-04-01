@@ -9,6 +9,49 @@ service cloud.firestore {
       return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    function validAnalyticsType() {
+      return request.resource.data.type in [
+        'page_visit',
+        'hero_cta_click',
+        'project_click',
+        'contact_click',
+        'social_click',
+        'linkedin_post_click',
+        'admin_login_view'
+      ];
+    }
+
+    function optionalString(field, maxLength) {
+      return !(field in request.resource.data)
+        || request.resource.data[field] == null
+        || (request.resource.data[field] is string && request.resource.data[field].size() <= maxLength);
+    }
+
+    function validAnalyticsCreate() {
+      return request.resource.data.keys().hasOnly([
+          'type',
+          'createdAt',
+          'page',
+          'label',
+          'destination',
+          'projectTitle',
+          'sessionId',
+          'deviceType',
+          'referrer',
+          'metadata'
+        ])
+        && validAnalyticsType()
+        && request.resource.data.createdAt == request.time
+        && optionalString('page', 240)
+        && optionalString('label', 160)
+        && optionalString('destination', 512)
+        && optionalString('projectTitle', 200)
+        && optionalString('sessionId', 128)
+        && optionalString('deviceType', 32)
+        && optionalString('referrer', 512)
+        && (!('metadata' in request.resource.data) || request.resource.data.metadata is map);
+    }
+
     match /siteContent/main {
       allow read: if true;
       allow create, update: if isAdmin();
@@ -22,6 +65,12 @@ service cloud.firestore {
     match /admins/{userId} {
       allow read: if isAdmin() || (signedIn() && request.auth.uid == userId);
       allow write: if false;
+    }
+
+    match /analyticsEvents/{eventId} {
+      allow read: if isAdmin();
+      allow create: if validAnalyticsCreate();
+      allow update, delete: if false;
     }
   }
 }

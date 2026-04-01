@@ -11,6 +11,7 @@ import {
   Save,
   Trash2,
 } from 'lucide-react'
+import AnalyticsDashboardSection from '../components/AnalyticsDashboardSection'
 import { useAuth } from '../context/AuthContext'
 import { defaultSiteContent } from '../data/defaultSiteContent'
 import { useSiteContent } from '../hooks/useSiteContent'
@@ -27,6 +28,7 @@ const tabs = [
   'Case Studies',
   'Contact',
   'Settings',
+  'Analytics',
 ]
 
 const createClone = (value) =>
@@ -216,7 +218,7 @@ function ItemToolbar({ onMoveUp, onMoveDown, onDelete, disableUp, disableDown })
 
 function AdminDashboardPage() {
   const { content, loading } = useSiteContent()
-  const { signOut, user } = useAuth()
+  const { signOut, user, firebaseEnabled } = useAuth()
   const [activeTab, setActiveTab] = useState('Hero')
   const [draft, setDraft] = useState(defaultSiteContent)
   const [saving, setSaving] = useState(false)
@@ -620,10 +622,12 @@ function AdminDashboardPage() {
             </AdminCard>
           </div>
         )
+      case 'Analytics':
+        return <AnalyticsDashboardSection firebaseEnabled={firebaseEnabled} />
       default:
         return null
     }
-  }, [activeTab, draft])
+  }, [activeTab, draft, firebaseEnabled])
 
   return (
     <div className="min-h-screen bg-[#05080f] px-4 py-6 sm:px-6 lg:px-8">

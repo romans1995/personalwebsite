@@ -1,3 +1,5 @@
+import { logAnalyticsEvent } from '../services/analyticsService'
+
 const GA_MEASUREMENT_ID = (import.meta.env.VITE_GA_MEASUREMENT_ID || '').trim()
 const CLARITY_PROJECT_ID = (import.meta.env.VITE_CLARITY_PROJECT_ID || '').trim()
 
@@ -89,13 +91,15 @@ export function initAnalytics() {
   return true
 }
 
-function sendEvent(eventName, params = {}, options = {}) {
-  if (!hasAnalyticsConfig()) return
+function shouldSkipDedupeKey(dedupeKey) {
+  if (!dedupeKey) return false
+  if (sentEventKeys.has(dedupeKey)) return true
+  sentEventKeys.add(dedupeKey)
+  return false
+}
 
-  if (options.dedupeKey) {
-    if (sentEventKeys.has(options.dedupeKey)) return
-    sentEventKeys.add(options.dedupeKey)
-  }
+function sendEvent(eventName, params = {}) {
+  if (!hasAnalyticsConfig()) return
 
   initAnalytics()
   const gtag = getGtag()
@@ -104,19 +108,30 @@ function sendEvent(eventName, params = {}, options = {}) {
   gtag('event', eventName, params)
 }
 
+function dispatchTrackedEvent(eventName, params = {}, options = {}) {
+  if (shouldSkipDedupeKey(options.dedupeKey)) return
+
+  sendEvent(eventName, params)
+  logAnalyticsEvent(eventName, params)
+}
+
 export function trackPageView(path, title = document?.title || '') {
   if (!path || path === lastTrackedPath) return
   lastTrackedPath = path
 
-  sendEvent('page_view', {
+  const payload = {
     page_path: path,
     page_title: title,
     page_location: canUseDom() ? window.location.href : undefined,
-  })
+    page: path,
+  }
+
+  sendEvent('page_view', payload)
+  logAnalyticsEvent('page_visit', payload)
 }
 
 export function trackEvent(eventName, params = {}) {
-  sendEvent(eventName, params)
+  dispatchTrackedEvent(eventName, params)
 }
 
 export function trackHeroCtaClick(params = {}) {
@@ -141,7 +156,7 @@ export function trackLinkedinPostClick(params = {}) {
 
 export function trackAdminLoginView(params = {}) {
   const path = params.path || '/studio/login'
-  sendEvent(ANALYTICS_EVENTS.ADMIN_LOGIN_VIEW, params, {
+  dispatchTrackedEvent(ANALYTICS_EVENTS.ADMIN_LOGIN_VIEW, params, {
     dedupeKey: `${ANALYTICS_EVENTS.ADMIN_LOGIN_VIEW}:${path}`,
   })
 }

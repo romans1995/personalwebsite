@@ -294,6 +294,88 @@ Clarity only loads when this value exists.
 
 If you need to verify in the browser, confirm the page loads a request to `https://www.clarity.ms/tag/...`.
 
+## Studio Analytics
+
+The private admin panel at `/studio` includes an internal Analytics dashboard powered by Firestore event logs.
+This is separate from GA4 and separate from Clarity:
+
+- Firestore powers the in-app `/studio` Insights dashboard
+- GA4 remains the place for Google Analytics reports and attribution
+- Clarity remains the place for session recordings, heatmaps, and behavioral playback
+
+### Stored event types
+
+The internal analytics layer stores these frontend-tracked events:
+
+- `page_visit`
+- `hero_cta_click`
+- `project_click`
+- `contact_click`
+- `social_click`
+- `linkedin_post_click`
+- `admin_login_view`
+
+### Firestore collection shape
+
+Events are written to:
+
+- `analyticsEvents/{eventId}`
+
+Each event stores a minimal structured payload such as:
+
+- `type`
+- `createdAt`
+- `page`
+- `label`
+- `destination`
+- `projectTitle`
+- `sessionId`
+- `deviceType`
+- `referrer`
+- `metadata`
+
+### What the `/studio` analytics dashboard shows
+
+The Analytics tab inside `/studio` includes:
+
+- visits today
+- visits in the last 7 days
+- visits in the last 30 days
+- total tracked clicks
+- LinkedIn post clicks
+- approximate active users now
+- activity over time
+- page visits by page
+- clicks by event type
+- recent activity
+- top projects
+- top links
+
+### How approximate active users works
+
+Active users is approximate.
+The dashboard counts unique `sessionId` values seen in the last 5 minutes from the internal Firestore event stream.
+
+### Security model
+
+Firestore rules are set so:
+
+- analytics events are not public to read
+- only admins can read analytics event documents
+- public clients can only create new analytics event documents
+- public clients cannot update or delete analytics documents
+
+### Limitations of frontend-only analytics collection
+
+This internal analytics layer is useful for owner insights, but it is not tamper-proof:
+
+- event writes come from the frontend, so advanced users can spoof or replay them
+- there is no backend rate limiting or bot filtering in this implementation
+- for very large traffic volumes, frontend writes plus client-side aggregation will not scale as well as a backend ingestion pipeline with pre-aggregated reports
+- exact live-user counts should still be treated as approximate in this architecture
+
+If you later need stronger analytics integrity, the next step is moving ingestion to a backend or serverless function and writing aggregated reporting documents for `/studio`.
+
 ## File overview
 
 - `src/pages/PublicSitePage.jsx` â€” public website composition
